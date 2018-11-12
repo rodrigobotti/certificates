@@ -17,7 +17,7 @@ const { parse, buildEmail } = require('./lib/attendee')
 
 const assetPath = fileName => join(config.assets.dirPath, fileName)
 
-const FILE_CSV_NAME = 'members.csv'
+const FILE_CSV_NAME = 'attendees.csv'
 const CSV_PARSE_DELIMITER = ','
 const FILE_IMAGE_CERTIFICATE_NAME = 'certificate.jpg'
 const FILE_TEMPLATE_NAME = 'certificate-template.html'
