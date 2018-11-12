@@ -18,7 +18,7 @@ module.exports = {
     },
     content: {
       subject: `[${process.env.EVENT_NAME}] Certificado`,
-      body: name => `<h1>Obrigado pro participar ${name}!</h1>`,
+      body: name => `<h1>Obrigado pro participar, ${name}!</h1>`,
       attachment: `Certificado ${process.env.EVENT_NAME}.pdf`
     }
   },
