@@ -33,6 +33,7 @@ tmp
 # editor
 .vscode
 
-assets
+assets/*
+!assets/certificate-template.html
 
 .DS_Store
