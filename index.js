@@ -1,10 +1,10 @@
 require('dotenv').config({})
 
-const { createReadStream } = require('fs')
+const { createReadStream, promises: { writeFile } } = require('fs')
 const { join } = require('path')
 
 const R = require('ramda')
-const _ = require('highland')
+const H = require('highland')
 const csv = require('csv-parse')
 const moment = require('moment')
 
@@ -19,7 +19,7 @@ const assetPath = fileName => join(config.assets.dirPath, fileName)
 
 const FILE_CSV_NAME = 'attendees.csv'
 const CSV_PARSE_DELIMITER = ','
-const FILE_IMAGE_CERTIFICATE_NAME = 'certificate.jpg'
+const FILE_IMAGE_CERTIFICATE_NAME = 'certificate.png'
 const FILE_TEMPLATE_NAME = 'certificate-template.html'
 
 const PLACEHOLDER_TEMPLATE_IMAGE = '{{ background_image }}'
@@ -30,9 +30,12 @@ const IMAGE_CERTIFICATE_CONTENT = loadBase64Sync(assetPath(FILE_IMAGE_CERTIFICAT
 const TEMPLATE_CERTIFICATE_CONTENT = loadContentSync(assetPath(FILE_TEMPLATE_NAME))
 const STYLE_NAME_CONTENT = serialize(config.styles.name)
 
-const BASE_CERTIFICATE_TEMPLATE = TEMPLATE_CERTIFICATE_CONTENT
-  .replace(PLACEHOLDER_TEMPLATE_IMAGE, IMAGE_CERTIFICATE_CONTENT)
-  .replace(PLACEHOLDER_TEMPLATE_STYLE_NAME, STYLE_NAME_CONTENT)
+const baseTemplate = R.pipe(
+  R.replace(PLACEHOLDER_TEMPLATE_IMAGE, IMAGE_CERTIFICATE_CONTENT),
+  R.replace(PLACEHOLDER_TEMPLATE_STYLE_NAME, STYLE_NAME_CONTENT)
+)
+
+const BASE_CERTIFICATE_TEMPLATE = baseTemplate(TEMPLATE_CERTIFICATE_CONTENT)
 
 const source = createReadStream(assetPath(FILE_CSV_NAME))
 
@@ -48,22 +51,55 @@ const buildEmailMessage = ({ name, email }) =>
 const buildEmailMessages = R.pipe(
   R.map(buildEmailMessage),
   R.bind(Promise.all, Promise),
-  _
+  H
 )
 
-const sendEmails = R.pipe(sendBatch, _)
+const sendEmails = R.pipe(
+  sendBatch,
+  H
+)
+
+const writeFS = R.curry((filename, content) =>
+  writeFile(filename, content, { encoding: 'utf8' })
+)
+
+const saveAttachment = email => R.pipe(
+  R.path(['attachments', 0, 'content']),
+  writeFS(join(config.assets.dirPath, 'debug', `${email.to}.pdf`))
+)(email)
+
+const then = fn => p =>
+  p.then(fn)
+
+const saveAttachments = R.pipe(
+  R.map(saveAttachment),
+  R.bind(Promise.all, Promise),
+  then(R.prop('length')),
+  H
+)
+
+const isPresent = R.propSatisfies(R.complement(R.isNil), 'checkin')
+
+// const compareAttendees = (a, b) => a.email === b.email
+
+const isDebugMode = R.always(config.debug)
 
 const start = Date.now()
 
-_(source)
+H(source)
   .through(parser)
-  .filter(R.propEq('present', 'x'))
+  .filter(isPresent)
+  // .uniqBy(compareAttendees)
   .map(parse)
   .batch(config.batch)
   .flatMap(buildEmailMessages)
-  .flatMap(sendEmails)
+  .flatMap(R.ifElse(
+    isDebugMode,
+    saveAttachments,
+    sendEmails
+  ))
   .tap(size => console.log(`Finished processing ${size} attendees`))
   .reduce(0, R.add)
-  .errors(console.error)
+  .errors(console.error.bind(console))
   .tap(total => `Finished processing ${total} attendees`)
-  .done(total => console.log(`Process finished in ${moment.duration(Date.now() - start).asMinutes()}m`))
+  .done(_total => console.log(`Process finished in ${moment.duration(Date.now() - start).asMinutes()}m`))

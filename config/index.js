@@ -1,17 +1,20 @@
 const { join } = require('path')
 
 module.exports = {
+  debug: process.env.DEBUG === 'true',
   assets: {
     dirPath: process.env.ASSETS_DIR_PATH || join(__dirname, '..', 'assets')
   },
   styles: {
     name: {
-      top: '765px',
-      width: '1890px',
-      'font-size': '100px'
+      top: '600px',
+      width: '1920px',
+      'font-size': '80px',
+      'font-family': 'cursive'
     }
   },
   email: {
+    // in case it is a provate gmail account: https://myaccount.google.com/lesssecureapps
     credentials: {
       username: process.env.EMAIL_CREDENTIALS_USERNAME,
       password: process.env.EMAIL_CREDENTIALS_PASSWORD
@@ -23,8 +26,8 @@ module.exports = {
     }
   },
   pdf: {
-    width: '1890px',
-    height: '1417px'
+    width: '1920px',
+    height: '1280px'
   },
   batch: 10
 }
