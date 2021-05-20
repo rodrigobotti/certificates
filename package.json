@@ -15,7 +15,7 @@
   "dependencies": {
     "csv-parse": "^4.8.5",
     "highland": "^2.13.0",
-    "html-pdf": "^2.2.0",
+    "html-pdf": "^3.0.1",
     "moment": "^2.22.2",
     "nodemailer": "^4.6.8",
     "ramda": "^0.27.0"
